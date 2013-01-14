@@ -311,8 +311,15 @@ self.yaml_scalar_scanner_en_main = 1;
     # END OF SCANNER DATA STRUCTURES
     ###
 
+    def initialize
+      @string_cache = {}
+      @symbol_cache = {}
+    end
+
     def tokenize string
       return nil if string.empty?
+      return string if @string_cache.key?(string)
+      return @symbol_cache[string] if @symbol_cache.key?(string)
 
       data = string_to_data(string)
       eof = data.length
@@ -557,7 +564,7 @@ end
     def parse_int_base_10 string
       Integer(string.gsub(/[,_]/, ''))
     rescue
-      string
+      parse_string string
     end
     alias parse_int_base_2  parse_int_base_10
     alias parse_int_base_8  parse_int_base_10
@@ -574,7 +581,7 @@ end
     def parse_float_base_10 string
       Float(string.gsub(/[,_]|\.$/, ''))
     rescue
-      string
+      parse_string string
     end
 
     def parse_float_base_60 string
@@ -601,7 +608,7 @@ end
       require 'date'
       Date.strptime(string, '%Y-%m-%d')
     rescue
-      string
+      parse_string string
     end
 
     def parse_time_full string
@@ -628,24 +635,25 @@ end
 
       Time.at((time - offset).to_i, us)
     rescue
-      string
+      parse_string string
     end
 
     def parse_symbol_quoted string
       last = string[-1]
       return string unless last == '"' || last == "'"
-      string[2..-2].to_sym
+      @symbol_cache[string] = string[2..-2].to_sym
     rescue
-      string
+      parse_string string
     end
 
     def parse_symbol_unquoted string
-      string[1..-1].to_sym
+      @symbol_cache[string] = string[1..-1].to_sym
     rescue
-      string
+      parse_string string
     end
 
     def parse_string string
+      @string_cache[string] = true
       string
     end
   end
